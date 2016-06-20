@@ -29,5 +29,6 @@ package org.sigmah.client.util.profiler;
  */
 public enum Scenario {	
 	AGENDA,
-	OPEN_PROJECT;
+	OPEN_PROJECT,
+	UPDATE_REMINDER;
 }

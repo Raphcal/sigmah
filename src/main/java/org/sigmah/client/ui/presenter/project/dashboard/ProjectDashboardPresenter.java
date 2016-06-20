@@ -274,6 +274,7 @@ public class ProjectDashboardPresenter extends AbstractProjectPresenter<ProjectD
 
 				// Manages only edit event.
 				if (event.getOperation() == RecordUpdate.EDIT) {
+					Profiler.INSTANCE.startScenario(Scenario.UPDATE_REMINDER);
 					onReminderUpdate(event.getModel());
 				}
 			}
@@ -714,14 +715,18 @@ public class ProjectDashboardPresenter extends AbstractProjectPresenter<ProjectD
 			@Override
 			public void onCommandSuccess(final ListResult<ReminderDTO> result) {
 
+				Profiler.INSTANCE.markCheckpoint(Scenario.UPDATE_REMINDER, "Before UI update");
 				view.getRemindersGrid().getStore().commitChanges();
 
 				for (final ReminderDTO point : result.getList()) {
 					point.setIsCompleted();
 					view.getRemindersGrid().getStore().update(point);
 				}
+				Profiler.INSTANCE.markCheckpoint(Scenario.UPDATE_REMINDER, "After UI update");
 
 				N10N.notification(I18N.CONSTANTS.infoConfirmation(), I18N.CONSTANTS.reminderUpdateConfirm(), MessageType.INFO);
+				// Ending the scenario
+				Profiler.INSTANCE.endScenario(Scenario.UPDATE_REMINDER);
 			}
 		}, new LoadingMask(view.getRemindersGrid()));
 
