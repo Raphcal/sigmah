@@ -352,7 +352,7 @@ implements OfflineEvent.Source {
 										N10N.errorNotif("Error", "<p>"+I18N.CONSTANTS.probeReportSentFailure()+"</p>");
 									}
 								});
-							}else{
+							} else {
 								N10N.errorNotif("Error", "<p>"+I18N.CONSTANTS.probeReportEmpty()+"</p>");
 							}							
 						}
@@ -363,27 +363,27 @@ implements OfflineEvent.Source {
 		traceMenuPanel.getActiveDesactiveModeAnchor().addClickHandler(new ClickHandler() {
 			@Override
 			public void onClick(ClickEvent event) {
-				if(Profiler.INSTANCE.isActive()){
-					Profiler.INSTANCE.setActive(false);
-					traceMenuPanel.getActiveDesactiveModeAnchor().setText(I18N.CONSTANTS.probesEnableTrace());
-					traceMenuPanel.getDateActivationModeLabel().setVisible(false);
-					traceMenuPanel.getDateActivationModeVariable().setVisible(false);	
-					traceMenuPanel.getDateActivationModeVariable().setVisible(false);
-					traceMenuPanel.getActiveDesactiveModeAnchor().removeStyleName(traceMenuPanel.getDISABLE_ACTION_STYLE());
-					traceMenuPanel.getActiveDesactiveModeAnchor().addStyleName(traceMenuPanel.getENABLE_ACTION_STYLE());
-					UpdateDates.setSigmahActivationTraceDate(null);
-					view.getTraceModeIcon().setResource(OfflineIconBundle.INSTANCE.traceOff());
-					
-				}else{
-					Profiler.INSTANCE.setActive(true);
+				final boolean willActivate = !Profiler.INSTANCE.isActive();
+				
+				Profiler.INSTANCE.setActive(willActivate);
+				traceMenuPanel.getDateActivationModeLabel().setVisible(willActivate);
+				traceMenuPanel.getDateActivationModeVariable().setVisible(willActivate);	
+				
+				if (willActivate) {
+					final Date activationDate = new Date();
+					UpdateDates.setSigmahActivationTraceDate(activationDate);
 					traceMenuPanel.getActiveDesactiveModeAnchor().setText(I18N.CONSTANTS.probesDisableTrace());
-					UpdateDates.setSigmahActivationTraceDate(new Date());
-					traceMenuPanel.getDateActivationModeLabel().setVisible(true);
-					traceMenuPanel.getDateActivationModeVariable().setVisible(true);
 					traceMenuPanel.getActiveDesactiveModeAnchor().removeStyleName(traceMenuPanel.getENABLE_ACTION_STYLE());
 					traceMenuPanel.getActiveDesactiveModeAnchor().addStyleName(traceMenuPanel.getDISABLE_ACTION_STYLE());
-					traceMenuPanel.getDateActivationModeVariable().setText(DateTimeFormat.getFormat(DateTimeFormat.PredefinedFormat.DATE_TIME_SHORT).format(UpdateDates.getSigmahActivationTraceDate()));
+					traceMenuPanel.getDateActivationModeVariable().setText(DateTimeFormat.getFormat(DateTimeFormat.PredefinedFormat.DATE_TIME_SHORT).format(activationDate));
 					view.getTraceModeIcon().setResource(OfflineIconBundle.INSTANCE.traceOn());
+				}
+				else {
+					UpdateDates.setSigmahActivationTraceDate(null);
+					traceMenuPanel.getActiveDesactiveModeAnchor().setText(I18N.CONSTANTS.probesEnableTrace());
+					traceMenuPanel.getActiveDesactiveModeAnchor().removeStyleName(traceMenuPanel.getDISABLE_ACTION_STYLE());
+					traceMenuPanel.getActiveDesactiveModeAnchor().addStyleName(traceMenuPanel.getENABLE_ACTION_STYLE());
+					view.getTraceModeIcon().setResource(OfflineIconBundle.INSTANCE.traceOff());
 				}				
 			}
 		});
