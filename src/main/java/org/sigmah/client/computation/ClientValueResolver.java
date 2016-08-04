@@ -29,13 +29,21 @@ import java.util.HashMap;
 import java.util.Map;
 import org.sigmah.client.dispatch.DispatchAsync;
 import org.sigmah.shared.command.BatchCommand;
+import org.sigmah.shared.command.GetLinkedProjects;
 import org.sigmah.shared.command.GetValue;
+import org.sigmah.shared.command.base.Command;
 import org.sigmah.shared.command.result.ListResult;
 import org.sigmah.shared.command.result.Result;
 import org.sigmah.shared.command.result.ValueResult;
 import org.sigmah.shared.computation.ValueResolver;
+import org.sigmah.shared.computation.dependency.CollectionDependency;
+import org.sigmah.shared.computation.dependency.ContributionDependency;
+import org.sigmah.shared.computation.dependency.Dependency;
+import org.sigmah.shared.computation.dependency.DependencyVisitor;
+import org.sigmah.shared.computation.dependency.SingleDependency;
 import org.sigmah.shared.computation.value.ComputedValue;
 import org.sigmah.shared.computation.value.ComputedValues;
+import org.sigmah.shared.dto.ProjectDTO;
 import org.sigmah.shared.dto.element.FlexibleElementDTO;
 
 /**
@@ -53,11 +61,32 @@ public class ClientValueResolver implements ValueResolver {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void resolve(Collection<FlexibleElementDTO> elements, int containerId, final AsyncCallback<Map<Integer, ComputedValue>> callback) {
+	public void resolve(final Collection<Dependency> dependencies, final int containerId, final AsyncCallback<Map<Dependency, ComputedValue>> callback) {
 		final BatchCommand batchCommand = new BatchCommand();
-		for (final FlexibleElementDTO element : elements) {
-			// TODO: Should support core versions.
-			batchCommand.add(new GetValue(containerId, element.getId(), element.getEntityName()));
+		final HashMap<Integer, Dependency> elementIdToDependencyMap = new HashMap<Integer, Dependency>();
+		
+		for (final Dependency dependency : dependencies) {
+			dependency.accept(new DependencyVisitor() {
+				
+				@Override
+				public void visit(SingleDependency dependency) {
+					final FlexibleElementDTO element = dependency.getFlexibleElement();
+					elementIdToDependencyMap.put(element.getId(), dependency);
+					
+					// TODO: Should support core versions.
+					batchCommand.add(new GetValue(containerId, element.getId(), element.getEntityName()));
+				}
+
+				@Override
+				public void visit(CollectionDependency dependency) {
+					throw new UnsupportedOperationException("Not supported yet.");
+				}
+
+				@Override
+				public void visit(ContributionDependency dependency) {
+					batchCommand.add(new GetLinkedProjects(containerId, dependency.getScope().getLinkedProjectType(), ProjectDTO.Mode.BASE));
+				}
+			});
 		}
 		
 		dispatch.execute(batchCommand, new AsyncCallback<ListResult<Result>>() {
@@ -69,14 +98,20 @@ public class ClientValueResolver implements ValueResolver {
 
 			@Override
 			public void onSuccess(ListResult<Result> result) {
-				final HashMap<Integer, ComputedValue> values = new HashMap<Integer, ComputedValue>();
+				final HashMap<Dependency, ComputedValue> values = new HashMap<Dependency, ComputedValue>();
 				
 				final int size = result.getSize();
 				for (int index = 0; index < size; index++) {
-					final GetValue getValue = (GetValue) batchCommand.getCommands().get(index);
-					final ValueResult valueResult = (ValueResult) result.getList().get(index);
-					
-					values.put(getValue.getElementId(), ComputedValues.from(valueResult));
+					final Command<?> command = batchCommand.getCommands().get(index);
+					if (command instanceof GetValue) {
+						final GetValue getValue = (GetValue) batchCommand.getCommands().get(index);
+						final ValueResult valueResult = (ValueResult) result.getList().get(index);
+
+						values.put(elementIdToDependencyMap.get(getValue.getElementId()), ComputedValues.from(valueResult));
+					}
+					else if(command instanceof GetLinkedProjects) {
+						// TODO: À continuer.
+					}
 				}
 				
 				callback.onSuccess(values);
@@ -84,5 +119,7 @@ public class ClientValueResolver implements ValueResolver {
 			
 		});
 	}
+	
+	
 	
 }

@@ -66,9 +66,15 @@ public final class Computations {
             
         } catch (RuntimeException e) {
             // Exception is ignored.
+			e.printStackTrace();
             return new Computation(Collections.singletonList(
                     Instructions.getConstantWithValue(ComputationError.BAD_FORMULA)));
         }
+	}
+	
+	public static Computation parse(String rule, Collection<FlexibleElementDTO> allElements, DependencyResolver resolver) {
+		final Computation computation = parse(rule, allElements);
+		return computation;
 	}
 	
 	/**
